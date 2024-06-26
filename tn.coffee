@@ -1,0 +1,1 @@
+for printer from [1..10] then print printer

@@ -1,0 +1,19 @@
+{
+  "name": "rew.three",
+  "version": "1.0.0",
+  "description": "Integration for node-3d",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["Rew", "Three", "Library", "3d", "UI", "NodeApi", "Node3D"],
+  "author": "",
+  "type": "module",
+  "license": "ISC",
+  "dependencies": {
+    "@types/three": "^0.165.0",
+    "3d-core-raub": "^4.3.0",
+    "glfw-raub": "^5.6.0",
+    "three": "^0.165.0"
+  }
+}
