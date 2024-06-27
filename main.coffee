@@ -10,9 +10,12 @@ createDocument = (options) ->
   return ctx
 
 
-createScene = (ctx3d, options) ->
-  ctx = {
-    ...emitter()
+createScene = (ctx3d, options, useListener) ->
+  target = emitter();
+  ctx = if useListener then {
+    ...target
+  } else {
+    listener: target
   };
   renderer = new Three.WebGLRenderer();
   renderer.setPixelRatio( ctx3d.doc.devicePixelRatio );
@@ -33,11 +36,11 @@ createScene = (ctx3d, options) ->
 
   ctx.animate = () ->
     time = Date.now();
-    ctx.emit('animate:beforeFrameRender', time);
+    target.emit('animate:beforeFrameRender', time);
     ctx3d.requestAnimationFrame(ctx.animate);
-    ctx.emit('animate:render', time);
+    target.emit('animate:render', time);
     renderer.render(ctx.scene, ctx.camera);
-    ctx.emit('animate:afterFrameRender', time);
+    target.emit('animate:afterFrameRender', time);
 
   return ctx
 
@@ -57,24 +60,40 @@ createForge3d = (options = { isGles3: true }) ->
     ...documentContext,
     modules: []
   }
-
-  context3d.Forge3D = {};
+  context3d.Forge3D = context3d;
 
   addUtils(context3d, options);
-  context3d.Scene = Usage::create('scene3d', ((cb) -> cb.call(createScene(context3d, options))), false)
+  context3d.Scene = Usage::create('scene3d', ((cb) -> cb.call(createScene(context3d, options, true))), false)
+  context3d.Scene.prototype = {};
+  context3d.Scene::create = () -> createScene(context3d, options)
 
   context3d.With = (...modules) ->
     for modpath in modules
-      module = require pjoin("three/examples/jsm", (if modpath.endsWith '.js' then modpath else "#{modpath}.js")), true
-      context3d.modules.push modpath
-      mod = {...module}
-      for i of mod
-        if i is 'default' then i = basename modpath
-        context3d[i] = mod[i]
+      if typeof modpath is 'string'
+        module = require pjoin("three/examples/jsm", (if modpath.endsWith '.js' then modpath else "#{modpath}.js")), true
+        context3d.modules.push modpath
+        mod = {...module}
+        for i of mod
+          if i is 'default' then i = basename modpath
+          context3d[i] = mod[i]
+      else if typeof modpath == 'object'
+        for i of modpath
+          context3d[i] = modpath[i]
     context3d
+
+  context3d.Compose = (cb) ->
+    if typeof cb == "function"
+      namespace.group [context3d, cb], Use: () -> using namespace this
+    else
+      (cb2) -> Usage::group cb, cb2
+
+  if Array.isArray options.with
+    context3d.With options.with...
   context3d
 
 Forge3D = Usage::create 'forge3d', (options, cb) ->
+  if Array.isArray options
+    options = { with: options, isGles3: true }
   if typeof options is "function" and not cb
     cb = options
     options = { isGles3: true }
