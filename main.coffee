@@ -6,7 +6,7 @@ import { init, addThreeHelpers } from '3d-core-raub';
 *###
 createDocument = (options) ->
   ctx = init(options);
-  addThreeHelpers(Three, ctx.gl);
+  addThreeHelpers(Three, ctx.gl) if options.three isnt false
   return ctx
 
 
@@ -22,7 +22,7 @@ createScene = (ctx3d, options, useListener) ->
   renderer.setSize( ctx3d.doc.innerWidth, ctx3d.doc.innerHeight );
 
   ctx.renderer = renderer;
-
+  
   ctx.camera = new Three.PerspectiveCamera(options.camera?.fov or 70, ctx3d.doc.innerWidth / ctx3d.doc.innerHeight, options.camera?.near or 1, options.camera?.far or 1000);
   ctx.camera.position.z = 2;
   
@@ -42,8 +42,29 @@ createScene = (ctx3d, options, useListener) ->
     renderer.render(ctx.scene, ctx.camera);
     target.emit('animate:afterFrameRender', time);
 
+  addSceneUtils(ctx3d, ctx);
+
   return ctx
 
+customMesh = (ctx, scene, mesh) ->
+  mesh.toScene = () ->
+    scene.scene.add(this)
+    return this
+  return mesh
+
+addSceneUtils = (ctx, scene) ->
+
+  MESH_TYPES =
+    box: ctx.BoxGeometry
+
+  scene.mat = (options) ->
+    if typeis(options, num) or typeis(options, str) then options = { color: options }
+    return new ctx.MeshStandardMaterial options
+
+  scene.mesh = (type, options) ->
+
+    if type of MESH_TYPES then type = MESH_TYPES[type]
+    return customMesh ctx, scene, new ctx.Mesh(new type(...options.size), options.material)
 
 addUtils = (ctx) -> null
 
@@ -61,6 +82,7 @@ createForge3d = (options = { isGles3: true }) ->
     modules: []
   }
   context3d.Forge3D = context3d;
+  context3d.__pathname = pjoin dirname(module.filepath), './node_modules/three'
 
   addUtils(context3d, options);
   context3d.Scene = Usage::create('scene3d', ((cb) -> cb.call(createScene(context3d, options, true))), false)

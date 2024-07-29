@@ -3,6 +3,7 @@ manifest:
   private: false
 exec:
   entry: main.coffee
+  test: test.coffee
 assets:
   icon: assets/icon.png
   folder: ./assets
